@@ -1,28 +1,15 @@
 FROM ubuntu:18.04
 
-MAINTAINER Tiago A. Pimenta <tiagoapimenta@gmail.com>
-
-COPY prefs.js /tmp/prefs.js
-
-COPY start /start
-
-COPY openssl.conf /tmp/openssl.conf
+COPY prefs.js start openssl.conf /tmp/
 
 RUN apt-get update && \
-  echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | \
-    debconf-set-selections && \
-  DEBIAN_FRONTEND=noninteractive \
-    apt-get install -y --no-install-recommends \
-      firefox \
-      ttf-mscorefonts-installer \
-      wget \
-      libnss3-tools \
-      openssl && \
-  rm -rf /var/lib/apt/lists/* && \
-  wget -P /tmp \
+  apt-get install -y --no-install-recommends wget openssl && \
+  wget -P /tmp --no-check-certificate \
     https://cloud.gastecnologia.com.br/bb/downloads/ws/warsaw_setup64.deb && \
-  dpkg -P wget && \
-  mkdir /tmp/o && \
+  mkdir /tmp/o /fs && \
+  install -o root -g root -m 755 /tmp/start /fs/start && \
+  install -o root -g root -m 1777 -d /fs/tmp && \
+  install -o root -g root -m 644 /tmp/prefs.js /fs/tmp/.prefs.js && \
   dpkg -x /tmp/warsaw_setup64.deb /tmp/o && \
   openssl genrsa -des3 \
     -passout "pass:$(cat /sys/class/dmi/id/modalias)" \
@@ -49,28 +36,52 @@ RUN apt-get update && \
     -passin "pass:$(cat /sys/class/dmi/id/modalias)" \
     -set_serial 1 \
     -out /tmp/o/localhost.crt && \
-  mkdir -p /usr/local/etc/warsaw && \
+  for dir in \
+    usr \
+    usr/local \
+    usr/local/etc \
+    usr/local/etc/warsaw \
+    usr/local/lib \
+    usr/local/bin \
+    usr/local/bin/warsaw; do \
+    install -o root -g root -m 755 -d "/fs/$dir"; \
+  done && \
   cat /tmp/o/localhost.crt /tmp/o/localhost.key > \
-    /usr/local/etc/warsaw/ws.dat && \
+    /fs/usr/local/etc/warsaw/ws.dat && \
   cp \
     /tmp/o/usr/local/etc/warsaw/features.datc \
     /tmp/o/usr/local/etc/warsaw/config.cfgc \
-    /usr/local/etc/warsaw && \
+    /fs/usr/local/etc/warsaw && \
   install \
     -m 666 \
-    /dev/null /usr/local/etc/warsaw/local.cfg && \
+    /dev/null /fs/usr/local/etc/warsaw/local.cfg && \
   cp -r \
     /tmp/o/usr/local/lib/warsaw \
-    /usr/local/lib/warsaw && \
-  mkdir -p /usr/local/bin/warsaw && \
+    /fs/usr/local/lib/warsaw && \
   install \
     -m 755 \
     /tmp/o/usr/local/bin/warsaw/core \
-    /usr/local/bin/warsaw/core && \
+    /fs/usr/local/bin/warsaw/core && \
   cp \
     /tmp/o/root_ca.cer \
-    /tmp/.warsaw.cer && \
-  rm -rf /tmp/warsaw_setup64.deb /tmp/o /tmp/openssl.conf
+    /fs/tmp/.warsaw.cer && \
+  rm -rf /tmp/warsaw_setup64.deb /tmp/o
+
+FROM ubuntu:18.04
+
+MAINTAINER Tiago A. Pimenta <tiagoapimenta@gmail.com>
+
+COPY --from=0 /fs /
+
+RUN apt-get update && \
+  echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | \
+    debconf-set-selections && \
+  DEBIAN_FRONTEND=noninteractive \
+    apt-get install -y --no-install-recommends \
+      firefox \
+      ttf-mscorefonts-installer \
+      libnss3-tools && \
+  rm -rf /var/lib/apt/lists/*
 
 ENV DISPLAY :0.0
 ENV XAUTHORITY /tmp/.Xauthority

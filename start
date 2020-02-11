@@ -12,11 +12,11 @@ fi
 
 if [ ! -d /home/dummy/.fx ]; then
 	install -o "$uid" -g "$gid" -m 755 -d /home/dummy/.fx
-	install -o "$uid" -g "$gid" -m 644 /tmp/prefs.js /home/dummy/.fx
+	install -o "$uid" -g "$gid" -m 644 /tmp/.prefs.js /home/dummy/.fx/prefs.js
 fi
 
 if [ ! -f /home/dummy/.fx/cert9.db ]; then
-	pid=$(su -l dummy -c "nohup firefox -no-remote -profile /home/dummy/.fx > /dev/null 2>&1 & printf '%s' \"\$!\"")
+	pid=$(su -c "nohup firefox -no-remote -profile /home/dummy/.fx > /dev/null 2>&1 & printf '%s' \"\$!\"" dummy)
 	sleep 2
 	while [ ! -f "/home/dummy/.fx/cert9.db" ]; do
 		sleep 2
@@ -26,7 +26,7 @@ fi
 
 if [ ! -f /home/dummy/warsaw.cer ]; then
 	install -o "$uid" -g "$gid" -m 644 /tmp/.warsaw.cer /home/dummy/warsaw.cer
-	su -lc 'certutil -D -n "Warsaw Personal CA" -d /home/dummy/.fx > /dev/null 2>&1; certutil -A -n "Warsaw Personal CA" -t "TCu,Cu,Tuw" -i /home/dummy/warsaw.cer -d /home/dummy/.fx' dummy
+	su -c 'certutil -D -n "Warsaw Personal CA" -d /home/dummy/.fx > /dev/null 2>&1; certutil -A -n "Warsaw Personal CA" -t "TCu,Cu,Tuw" -i /home/dummy/warsaw.cer -d /home/dummy/.fx' dummy
 fi
 
 /usr/local/bin/warsaw/core
