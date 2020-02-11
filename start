@@ -1,0 +1,15 @@
+#!/bin/sh
+
+gid=$(stat -c%g /tmp/.Xauthority)
+uid=$(stat -c%u /tmp/.Xauthority)
+
+addgroup -g "$gid" dummy
+
+adduser -G dummy -D -u "$uid" dummy
+
+install -o "$uid" -g "$gid" -m 755 -d /home/dummy/.fx
+install -o "$uid" -g "$gid" -m 644 /tmp/prefs.js /home/dummy/.fx
+
+/usr/local/bin/warsaw/core
+
+exec su -c '/usr/local/bin/warsaw/core && exec firefox -profile /home/dummy/.fx https://www2.bancobrasil.com.br/aapf/login.jsp' dummy
