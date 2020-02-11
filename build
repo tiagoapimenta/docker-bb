@@ -1,0 +1,23 @@
+#!/bin/sh
+
+set -e
+
+base=tpimenta/firefox-bb
+version=ubuntu-lts
+image="$base:$version"
+
+atexit() {
+	docker images -q -f dangling=true "$base" | xargs -r docker rmi
+}
+
+trap atexit INT TERM EXIT
+
+docker build \
+	--force-rm \
+	--no-cache \
+	--tag "$image" \
+	"$(dirname "$0")"
+
+docker push "$image"
+docker tag "$image" "$base:latest"
+docker push "$base:latest"
