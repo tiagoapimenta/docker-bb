@@ -10,15 +10,26 @@ if ! id dummy > /dev/null 2>&1; then
 	useradd -g "$gid" -m -N -o -u "$uid" dummy
 fi
 
-if [ ! -d /home/dummy/.fx ]; then
-	install -o "$uid" -g "$gid" -m 755 -d /home/dummy/.fx
-	install -o "$uid" -g "$gid" -m 644 /tmp/.prefs.js /home/dummy/.fx/prefs.js
+profile=/home/dummy/.mozilla/firefox/default
+if [ ! -d "$profile" ]; then
+	for dir in \
+		.mozilla \
+		.mozilla/firefox \
+		.mozilla/firefox/default; do
+		install -o "$uid" -g "$gid" -m 755 -d "/home/dummy/$dir"
+	done
+	install -o "$uid" -g "$gid" -m 644 /tmp/.prefs.js "$profile/prefs.js"
 fi
 
-if [ ! -f /home/dummy/.fx/cert9.db ]; then
-	pid=$(su -c "nohup firefox -no-remote -profile /home/dummy/.fx > /dev/null 2>&1 & printf '%s' \"\$!\"" dummy)
+if [ ! -f "$profile/cert9.db" ]; then
+	# TODO: remove it when fixed
+	# start workaround
+	timeout 2s su -c "firefox -no-remote -profile $profile" dummy || :
+	kill -9 $(pidof crashreporter) || :
+	# end workaround
+	pid=$(su -c "nohup firefox -no-remote -profile $profile > /dev/null 2>&1 & printf '%s' \"\$!\"" dummy)
 	sleep 2
-	while [ ! -f "/home/dummy/.fx/cert9.db" ]; do
+	while [ ! -f "$profile/cert9.db" ]; do
 		sleep 2
 	done
 	kill -9 $pid
@@ -26,11 +37,11 @@ fi
 
 if [ ! -f /home/dummy/warsaw.cer ]; then
 	install -o "$uid" -g "$gid" -m 644 /tmp/.warsaw.cer /home/dummy/warsaw.cer
-	su -c 'certutil -D -n "Warsaw Personal CA" -d sql:/home/dummy/.fx > /dev/null 2>&1; certutil -A -n "Warsaw Personal CA" -t "TCu,Cu,Tuw" -i /home/dummy/warsaw.cer -d sql:/home/dummy/.fx' dummy
+	su -c "certutil -D -n 'Warsaw Personal CA' -d sql:$profile > /dev/null 2>&1; certutil -A -n 'Warsaw Personal CA' -t TCu,Cu,Tuw -i /home/dummy/warsaw.cer -d sql:$profile" dummy
 fi
 
 /usr/local/bin/warsaw/core
 
 sleep 1
 
-exec su -c '/usr/local/bin/warsaw/core && exec firefox -no-remote -profile /home/dummy/.fx https://www2.bancobrasil.com.br/aapf/login.jsp' dummy
+exec su -c "/usr/local/bin/warsaw/core && exec firefox -no-remote -profile $profile https://www2.bancobrasil.com.br/aapf/login.jsp" dummy
