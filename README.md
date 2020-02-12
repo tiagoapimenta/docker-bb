@@ -1,6 +1,6 @@
-# Docker BB
+# Docker Firefox BB (with warsaw)
 
-Used mainly to access [BB](http://www.bb.com.br), run the following command:
+Used mainly to access [BB](http://www.bb.com.br) internet banking, contains warsaw, run the following command:
 
     docker run \
       --rm -it \
