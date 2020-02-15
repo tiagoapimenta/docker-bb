@@ -80,15 +80,13 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       firefox \
       ttf-mscorefonts-installer \
+      libgtk2.0-0 \
       libnss3-tools && \
   rm -rf /var/lib/apt/lists/*
 
 ENV DISPLAY :0.0
 ENV XAUTHORITY /tmp/.Xauthority
 ENV GDK_SYNCHRONIZE 1
-
-ENV PULSE_SERVER unix:/tmp/pulse/native
-ENV PULSE_COOKIE /tmp/.pulse-cookie
 
 CMD [ \
       "/start" \
